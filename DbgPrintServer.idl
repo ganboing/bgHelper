@@ -1,0 +1,8 @@
+[
+	uuid(76338ab1-2afd-4287-9d36-77acd77fd8c2),
+	version(1.0)
+]
+interface DbgPrintRemote
+{
+	unsigned __int3264 DbgPntCreate([in] handle_t h1);
+}
