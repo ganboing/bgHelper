@@ -37,6 +37,16 @@ size_t my_strncpy(char(&Dest)[N], const volatile char* &Src)
 	return i + 1;
 }
 
+template<size_t N>
+size_t my_wstrncpy(wchar_t(&Dest)[N], const volatile wchar_t* str, size_t len){
+	size_t copylen = (len >= N) ? N - 1 : len;
+	for (size_t i = 0; i < copylen; ++i){
+		Dest[i] = str[i];
+	}
+	Dest[copylen] = 0;
+	return copylen + 1;
+}
+
 inline char my_toupper(char a){
 	if (a >= 'a' && a <= 'z'){
 		return a - 'a' + 'A';

@@ -4,20 +4,23 @@
 namespace DbgPnt{
 	
 	class DbgPrintServer{
-		typedef std::unique_ptr<DbgPntSharedArea> ManagedAreaView;
 	public:
 		DWORD const pid;
-		ManagedHANDLE const thread;
 		ManagedHANDLE const mapping;
-		HANDLE const mapping_client;
-		ManagedAreaView const view;
+		ManagedView const view;
 		DbgPntSharedArea& area;
 
-		DbgPrintServer(DWORD pid);
+		DbgPrintServer(DWORD pid, HANDLE mapping);
 		~DbgPrintServer();
+		inline static DWORD WINAPI ThreadProc(LPVOID p){
+			((DbgPrintServer*)p)->Run();
+			return 0;
+		}
 		void Run(); 
 		void Print(const Packet& packet);
 	};
 }
+
+typedef DbgPnt::DbgPrintServer DbgPrintServer;
 
 //void DbgPrintRemote(const EXCEPTION_RECORD&);

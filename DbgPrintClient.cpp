@@ -1,20 +1,33 @@
 #include <Windows.h>
-#include <ApiWrapper.h>
-#include <ApiEHWrapper.h>
 #include <memory>
+#include "ApiWrapper.h"
+#include "ApiEHWrapper.h"
 #include "DbgPrintClient.h"
+#include "GlobalIniter.hpp"
 #include "newstd.h"
 
 GEN_WINAPI_EH_RESULT(NULL, MapViewOfFile);
+GEN_WINAPI_EH_RESULT(NULL, CreateFileMapping);
 
 namespace DbgPnt{
 
-	HANDLE InitSharedMapping();
+	void* DbgPntSharedArea::operator new(size_t count, uintptr_t mapping){
+		return EH_MapViewOfFile((HANDLE)mapping, FILE_MAP_ALL_ACCESS, 0, 0, count);
+	}
+
+		void DbgPntSharedArea::operator delete  (void* ptr){
+		UnmapViewOfFile(ptr);
+	}
+
+	void DbgPntSharedArea::operator delete  (void* ptr, uintptr_t mapping_handle){
+		UnmapViewOfFile(ptr);
+	}
 
 	DbgPrintClient::DbgPrintClient() :
-		mapping(InitSharedMapping()),
-		view(EH_MapViewOfFile(mapping.get(), FILE_MAP_ALL_ACCESS, 0, 0, sizeof(DbgPntSharedArea))),
-		area(*(DbgPntSharedArea*)view.get())
+		//mapping(InitSharedMapping()), 
+		mapping(EH_CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, sizeof(DbgPntSharedArea), NULL)),
+		view(new ((uintptr_t)mapping.get())DbgPntSharedArea),
+		area(*view.get())
 	{}
 
 	DbgPrintClient::~DbgPrintClient(){
@@ -40,7 +53,15 @@ namespace DbgPnt{
 		auto p = GetPacketSlot(fmt);
 		p->type = PacketType::STRING;
 		auto vstr = area.Vstrs.Alloc();
-		my_strncpy(*vstr, str);
+		my_strncpy(vstr->str, str);
+		p->data.istr = vstr - &area.Vstrs[0];
+	}
+	
+	void DbgPrintClient::print(const volatile UNICODE_STRING& wstr){
+		auto p = GetPacketSlot("");
+		p->type = PacketType::WSTRING;
+		auto vstr = area.Vstrs.Alloc();
+		my_wstrncpy(vstr->wstr, wstr.Buffer, wstr.Length);
 		p->data.istr = vstr - &area.Vstrs[0];
 	}
 
@@ -81,17 +102,4 @@ namespace DbgPnt{
 	}
 }
 
-DbgPrintClient DBGr;
-
-extern "C"
-{
-	void __RPC_FAR * __RPC_USER midl_user_allocate(size_t len)
-	{
-		return malloc(len);
-	}
-
-	void __RPC_USER midl_user_free(void __RPC_FAR * ptr)
-	{
-		return free(ptr);
-	}
-}
+//GLOBAL_INITER_IMPL(DbgPrintClient, DBGr)

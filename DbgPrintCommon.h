@@ -1,5 +1,6 @@
 #pragma once
 #include <Windows.h>
+#include <memory>
 #include <cstdint>
 #include <newstd.h>
 #include <TaskQueue.hpp>
@@ -30,6 +31,7 @@ namespace DbgPnt{
 	};
 
 	enum class PacketType{
+		WSTRING,
 		STRING,
 		CHAR,
 		SHORT,
@@ -44,8 +46,11 @@ namespace DbgPnt{
 		PacketDataU data;
 		char format[sizeof(uintptr_t) * 2];
 	};
-	typedef char VStr[MAX_DBG_STR_LEN];
-	typedef ConcurrentStor<VStr> VStrsTy;
+	union VStr{
+		char str[MAX_DBG_STR_LEN];
+		wchar_t wstr[MAX_DBG_STR_LEN / sizeof(wchar_t)];
+	};
+	typedef ConcurrentStor<VStr, MAX_DBG_STR_LEN> VStrsTy;
 	typedef TaskQueue<Packet, BUFF_LINES> PacketQueueTy;
 
 	struct DbgPntSharedArea{
@@ -57,4 +62,5 @@ namespace DbgPnt{
 		PacketQueueTy PacketQueue;
 		std::atomic<bool> IsShutdown;
 	};
+	typedef std::unique_ptr<DbgPntSharedArea> ManagedAreaView;
 }

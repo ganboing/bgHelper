@@ -1,7 +1,7 @@
 #include <Windows.h>
 #include "ApiEHWrapper.h"
 #include "WinResMgr.h"
-#include "ProcessSuspenderCommon.h"
+#include "ProcessSuspenderChild.h"
 
 extern "C"{
 	NTSTATUS NTAPI NtResumeProcess(HANDLE ProcessHandle);
@@ -11,40 +11,50 @@ extern "C"{
 GEN_WINAPI_EH_RESULT(NULL, OpenProcess);
 GEN_WINAPI_EH_RESULT(NULL, OpenThread);
 GEN_WINAPI_EH_RESULT(NULL, MapViewOfFile);
-GEN_WINAPI_EH_RESULT(0, DuplicateHandle);
 GEN_WINAPI_EH_STATUS(0, NtSuspendProcess);
 GEN_WINAPI_EH_STATUS(0, NtResumeProcess);
 GEN_WINAPI_EH_RESULT((DWORD)-1, ResumeThread);
 GEN_WINAPI_EH_RESULT((DWORD)-1, SuspendThread);
 
+namespace ProcSuspender{
 
-void ProcSuspenderLoop(DWORD proc, HANDLE target_mapping){
-	HANDLE my_mapping;
-	ManagedHANDLE hproc(EH_OpenProcess(PROCESS_DUP_HANDLE | PROCESS_SUSPEND_RESUME, FALSE, proc));
-	EH_DuplicateHandle(hproc.get(), target_mapping, GetCurrentProcess(), &my_mapping, 0, FALSE, DUPLICATE_SAME_ACCESS);
-	ManagedHANDLE hmapping(my_mapping);
-	ManagedView view(EH_MapViewOfFile(my_mapping, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(SuspenderSharedArea)));
-	auto& area = *(SuspenderSharedArea*)view.get();
-	for (;;)
-	{
-		DWORD tid = area.tid.load();
-		if (tid == DWORD(0) - 1){
-			break;
-		}
-		if (tid){
-			ManagedHANDLE thread(OpenThread(THREAD_SUSPEND_RESUME, FALSE, tid));
-			EH_NtSuspendProcess(hproc.get());
-			area.suspend.store(true);
-			EH_ResumeThread(thread.get());
-			while (area.suspend.load()){
+	ProcSuspenderChild::ProcSuspenderChild(DWORD _pid, HANDLE _mapping):
+		pid(_pid),
+		proc(EH_OpenProcess(PROCESS_SUSPEND_RESUME, FALSE, pid)),
+		mapping(_mapping),
+		view(EH_MapViewOfFile(mapping.get(), FILE_MAP_ALL_ACCESS, 0, 0, sizeof(SuspenderSharedArea))),
+		area(*(SuspenderSharedArea*)view.get())
+	{}
+
+	ProcSuspenderChild::~ProcSuspenderChild()
+	{}
+
+	void ProcSuspenderChild::Run(){
+		printf("ProcSuspender for %d started\n", pid);
+		for (;;)
+		{
+			DWORD tid = area.tid.load();
+			if (tid == DWORD(0) - 1){
+				break;
+			}
+			if (tid){
+				ManagedHANDLE thread(OpenThread(THREAD_SUSPEND_RESUME, FALSE, tid));
+				printf("suspending pid=%d, by tid=%d\n", pid, tid);
+				EH_NtSuspendProcess(proc.get());
+				area.suspend.store(true);
+				EH_ResumeThread(thread.get());
+				while (area.suspend.load()){
+					Sleep(1);
+				}
+				EH_SuspendThread(thread.get());
+				EH_NtResumeProcess(proc.get());
+				area.tid.store(0);
+				printf("resuming pid=%d, by tid=%d\n", pid, tid);
+			}
+			else{
 				Sleep(1);
 			}
-			EH_SuspendThread(thread.get());
-			EH_NtResumeProcess(hproc.get());
-			area.tid.store(0);
 		}
-		else{
-			Sleep(1);
-		}
+		printf("ProcSuspender for %d stopped\n", pid);
 	}
 }

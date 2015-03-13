@@ -1,8 +1,9 @@
 #pragma once
 #include <Windows.h>
-#include <DbgPrintCommon.h>
+#include <Subauth.h>
 #include <cstdint>
-#include <WinResMgr.h>
+#include "DbgPrintCommon.h"
+#include "WinResMgr.h"
 
 #pragma warning(push)
 #pragma warning(disable: 4510)
@@ -21,13 +22,14 @@ namespace DbgPnt{
 		DbgPrintClient& printer;
 		const FMT fmt;
 		template<class T>
-		DbgPrintClient& operator<<(T);
+		DbgPrintClient& operator<<(T&&);
 	};
 
 	class DbgPrintClient{
-	private:
+	public:
 		ManagedHANDLE const mapping;
-		ManagedView const view;
+	private:
+		ManagedAreaView const view;
 		DbgPntSharedArea& area;
 		PacketQueueTy::EleSmartPtr GetPacketSlot(const volatile char*);
 	public:
@@ -35,8 +37,8 @@ namespace DbgPnt{
 		~DbgPrintClient();
 		inline DbgPrintFMT operator<< (FMT fmt) { return DbgPrintFMT{ *this, fmt }; }
 		template<class T>
-		inline DbgPrintClient& operator << (T arg){
-			print(arg);
+		inline DbgPrintClient& operator << (T&& arg){
+			print(std::forward<T>(arg));
 			return *this;
 		}
 		void print(unsigned char cu, const char* = "%c");
@@ -54,11 +56,12 @@ namespace DbgPnt{
 		inline void print(const volatile void* p, const char* fmt = "%p"){ print((uintptr_t)p, fmt); }
 		void print(double d, const char* = "%f");
 		void print(const volatile char* str, const char* = "%s");
+		void print(const volatile UNICODE_STRING& str);
 	};
 
 	template<class T>
-	DbgPrintClient& DbgPrintFMT::operator<< (T arg){
-		printer.print(arg, fmt.format);
+	DbgPrintClient& DbgPrintFMT::operator<< (T&& arg){
+		printer.print(std::forward<T>(arg), fmt.format);
 		return printer;
 	}
 }
