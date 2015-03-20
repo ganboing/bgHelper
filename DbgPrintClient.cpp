@@ -36,7 +36,7 @@ namespace DbgPnt{
 
 	PacketQueueTy::EleSmartPtr DbgPrintClient::GetPacketSlot(const volatile char* fmt){
 		auto p = area.PacketQueue.Reserve();
-		my_strncpy(p->format, fmt);
+		_my_strncpy(p->format, fmt);
 		return p;
 	}
 
@@ -53,7 +53,7 @@ namespace DbgPnt{
 		auto p = GetPacketSlot(fmt);
 		p->type = PacketType::STRING;
 		auto vstr = area.Vstrs.Alloc();
-		my_strncpy(vstr->str, str);
+		_my_strncpy(vstr->str, str);
 		p->data.istr = vstr - &area.Vstrs[0];
 	}
 	
@@ -61,7 +61,7 @@ namespace DbgPnt{
 		auto p = GetPacketSlot("");
 		p->type = PacketType::WSTRING;
 		auto vstr = area.Vstrs.Alloc();
-		my_wstrncpy(vstr->wstr, wstr.Buffer, wstr.Length);
+		_my_strncpy(vstr->wstr, wstr.Buffer, wstr.Length);
 		p->data.istr = vstr - &area.Vstrs[0];
 	}
 

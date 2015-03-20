@@ -21,30 +21,23 @@ struct call_atexit{
 	}
 };
 
-template<size_t N>
-size_t my_strncpy(char(&Dest)[N], const volatile char* &Src)
-{
+template<typename T, size_t N>
+size_t _my_strncpy(T(&Dest)[N], const volatile T* Src, size_t Len = SIZE_MAX){
 	if (!Src){
-		Src = "null";
+		Dest[0] = T(0);
+		return 1;
 	}
 	size_t i;
-	for (i = 0; i < N - 1 && Src[i]; ++i)
-	{
-		Dest[i] = Src[i];
+	for (i = 0; Len == SIZE_MAX ? Src[i] : i < Len; ++i){
+		if (i < N - 1){
+			Dest[i] = Src[i];
+		}
+		else{
+			break;
+		}
 	}
-	Src += i;
-	Dest[i] = 0;
-	return i + 1;
-}
-
-template<size_t N>
-size_t my_wstrncpy(wchar_t(&Dest)[N], const volatile wchar_t* str, size_t len){
-	size_t copylen = (len >= N) ? N - 1 : len;
-	for (size_t i = 0; i < copylen; ++i){
-		Dest[i] = str[i];
-	}
-	Dest[copylen] = 0;
-	return copylen + 1;
+	Dest[i] = T(0);
+	return ++i;
 }
 
 inline char my_toupper(char a){
