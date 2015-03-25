@@ -24,7 +24,7 @@ struct call_atexit{
 template<typename T, size_t N>
 size_t _my_strncpy(T(&Dest)[N], const volatile T* Src, size_t Len = SIZE_MAX){
 	if (!Src){
-		Dest[0] = T(0);
+		Dest[0] = T();
 		return 1;
 	}
 	size_t i;
@@ -36,8 +36,26 @@ size_t _my_strncpy(T(&Dest)[N], const volatile T* Src, size_t Len = SIZE_MAX){
 			break;
 		}
 	}
-	Dest[i] = T(0);
+	Dest[i] = T();
 	return ++i;
+}
+
+char _my_get_hex(unsigned char i){
+	return i <= 9 ? i + '0' : i - 0xA + 'A';
+}
+
+void _my_print_char(char* buf, unsigned char data){
+	buf[0] = _my_get_hex(data / 0x10U);
+	buf[1] = _my_get_hex(data % 0x10U);
+}
+
+template<typename T>
+void _my_printp(char* buf, T data){
+	unsigned char src[sizeof(data)];
+	memcpy(src, &data, sizeof(data));
+	for (size_t i = 0; i < sizeof(data);++i){
+		_my_print_char(buf + i * 2, src[sizeof(data) - i - 1]);
+	}
 }
 
 inline char my_toupper(char a){
