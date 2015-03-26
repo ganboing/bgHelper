@@ -145,6 +145,7 @@ enum TAG : DWORD{
 	TAG_DATA_BITS = (0x5 | TAG_TYPE_BINARY),//Data bits attribute
 	TAG_MSI_PACKAGE_ID = (0x6 | TAG_TYPE_BINARY),//MSI package identifier attribute of an MSI package
 	TAG_DATABASE_ID = (0x7 | TAG_TYPE_BINARY),//GUID attribute of a database
+	TAG_APP_ID = (0x11 | TAG_TYPE_BINARY),//APP_ID
 	TAG_INDEX_BITS = (0x801 | TAG_TYPE_BINARY),//Index bits attribute
 
 	TAG_TYPE_WORD = (0x3000),
