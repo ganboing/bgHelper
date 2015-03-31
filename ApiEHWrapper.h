@@ -16,7 +16,11 @@ struct WinApiEHWrapper_status<Ret WINAPI(Args...)>
 			Ret ret = F(args...);
 			if (ret != S)
 			{
+#ifdef _CPPUNWIND
 				throw ret;
+#else
+				DbgRaiseAssertionFailure();
+#endif
 			}
 		}
 	};
@@ -36,7 +40,11 @@ struct WinApiEHWrapper_result<Ret WINAPI(Args...)>
 			Ret ret = F(args...);
 			if (ret == S)
 			{
+#ifdef _CPPUNWIND
 				throw GetLastError();
+#else
+				DbgRaiseAssertionFailure();
+#endif
 			}
 			return ret;
 		}

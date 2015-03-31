@@ -2,12 +2,15 @@
 #include <winternl.h>
 #include <Psapi.h>
 #include <string>
+#include "ApiEHWrapper.h"
 #include "ApiWrapper.h"
 #include "WinResMgr.h"
 
-#define BUFSIZE 512
+GEN_WINAPI_EH_RESULT(NULL, CreateFileMapping);
+GEN_WINAPI_EH_RESULT(NULL, MapViewOfFile);
+GEN_WINAPI_EH_RESULT(0, GetMappedFileName);
 
-std::string GetFileNameFromHandle(HANDLE hFile)
+DWORD WINAPI GetFileNameFromHandle(HANDLE hFile, LPTSTR lpName, DWORD nSize)
 {
 	// Get the file size.
 	DWORD dwFileSizeHi = 0;
@@ -18,14 +21,35 @@ std::string GetFileNameFromHandle(HANDLE hFile)
 	}
 
 	// Create a file mapping object.
-	ManagedHANDLE hFileMap(EH_CreateFileMappingA(hFile, NULL, PAGE_READONLY, 0, 1, NULL));
+	ManagedHANDLE hFileMap(CreateFileMapping(hFile, NULL, PAGE_READONLY, 0, 1, NULL));
+	if (!hFileMap.get()){
+		return 0;
+	}
 
 	// Create a file mapping to get the file name.
-	ManagedView pMem(EH_MapViewOfFile(hFileMap.get(), FILE_MAP_READ, 0, 0, 1));
+	ManagedView pMem(MapViewOfFile(hFileMap.get(), FILE_MAP_READ, 0, 0, 1));
+	if (!pMem.get()){
+		return 0;
+	}
 
-	char pszFilename[MAX_PATH];
-	EH_GetMappedFileNameA(GetCurrentProcess(),pMem.get(),pszFilename,MAX_PATH);
-	return std::string(pszFilename);
+	return GetMappedFileName(GetCurrentProcess(), pMem.get(), lpName, nSize);
+}
+
+PVOID WINAPI GetModuleEntryPoint(PVOID hModule){
+	auto imageBase = (PBYTE)hModule;
+
+	auto pDosHeader = (PIMAGE_DOS_HEADER)imageBase;
+	auto pNtHeaders = (PIMAGE_NT_HEADERS)(imageBase + pDosHeader->e_lfanew);
+	return imageBase + pNtHeaders->OptionalHeader.AddressOfEntryPoint;
+}
+
+PVOID WINAPI GetModuleEntryPointByName(LPCTSTR lpName){
+	auto module = GetModuleHandle(lpName);
+	if (!module){
+		return NULL;
+	}
+
+	return GetModuleEntryPoint(module);
 }
 
 void* GetStackStor()
