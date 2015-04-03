@@ -8,6 +8,7 @@
 
 void InstallHWExec(ULONG_PTR target, ULONG_PTR redir);
 void UninstallHWExec(ULONG_PTR target);
+LONG CALLBACK HWBreakPointHandler(PEXCEPTION_POINTERS);
 
 template <typename T>
 struct FuncWatcher;
@@ -33,3 +34,10 @@ struct FuncWatcher<Ret __stdcall(Args...)>{
 		}
 	};
 };
+
+typedef BOOL WINAPI DLLMAIN_t(
+	_In_  HINSTANCE hinstDLL,
+	_In_  DWORD fdwReason,
+	_In_  LPVOID lpvReserved
+	);
+typedef DWORD WINAPI EXEMAIN_t(void);

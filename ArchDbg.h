@@ -1,8 +1,21 @@
+#pragma once
 #include <cstdint>
 #include <Windows.h>
 
-enum MY_EXCEPTIONS : DWORD{
+enum HWBreakPointRWLEN : ULONG_PTR{
+	HWBP_EXEC = 0,
+	HWBP_WRITE = 1,
+	HWBP_ACCESS = 3,
+	HWBP_LEN1 = 0,
+	HWBP_LEN2 = 1,
+	HWBP_LEN8 = 2,
+	HWBP_LEN4 = 3
+};
 
+struct HWBP_CTRL{
+	bool ENABLE;
+	ULONG_PTR RW;
+	ULONG_PTR LEN;
 };
 
 #pragma warning(push)
@@ -21,7 +34,6 @@ typedef union{
 		ULONG_PTR BD : 1;
 		ULONG_PTR BS : 1;
 		ULONG_PTR BT : 1;
-	ULONG_PTR: sizeof(ULONG_PTR) * 8 - 16;
 	};
 }Dr6_t;
 
@@ -49,7 +61,6 @@ typedef union{
 		ULONG_PTR LEN2 : 2;
 		ULONG_PTR RW3 : 2;
 		ULONG_PTR LEN3 : 2;
-	ULONG_PTR: sizeof(ULONG_PTR) * 8 - 32;
 	};
 }Dr7_t;
 
@@ -70,22 +81,30 @@ typedef struct {
 
 #pragma warning(pop)
 
-static void UnsetHWBreakPoint(DWORD& _dr7, size_t ith)
+static inline void SetHWBreakPointCtrl(DWORD& _dr7, size_t ith, const HWBP_CTRL& ctrl)
 {
 	Dr7_t dr7{ _dr7 };
 	switch (ith)
 	{
 	case 0:
-		dr7.L0 = 0;
+		dr7.L0 = ctrl.ENABLE;
+		dr7.RW0 = ctrl.RW;
+		dr7.LEN0 = ctrl.LEN;
 		break;
 	case 1:
-		dr7.L1 = 0;
+		dr7.L1 = ctrl.ENABLE;
+		dr7.RW1 = ctrl.RW;
+		dr7.LEN1 = ctrl.LEN;
 		break;
 	case 2:
-		dr7.L2 = 0;
+		dr7.L2 = ctrl.ENABLE;
+		dr7.RW2 = ctrl.RW;
+		dr7.LEN2 = ctrl.LEN;
 		break;
 	case 3:
-		dr7.L3 = 0;
+		dr7.L3 = ctrl.ENABLE;
+		dr7.RW3 = ctrl.RW;
+		dr7.LEN3 = ctrl.LEN;
 		break;
 	default:
 		__assume(0);
@@ -93,52 +112,40 @@ static void UnsetHWBreakPoint(DWORD& _dr7, size_t ith)
 	_dr7 = dr7.DR7;
 }
 
-static inline void SetHWBreakPoint(DWORD& _dr7, size_t ith, ULONG_PTR attr, ULONG_PTR len)
+static inline HWBP_CTRL GetHWBreakPointCtrl(DWORD& _dr7, size_t ith)
 {
 	Dr7_t dr7{ _dr7 };
 	switch (ith)
 	{
 	case 0:
-		dr7.L0 = 1;
-		dr7.RW0 = attr;
-		dr7.LEN0 = len;
-		break;
+		return{ dr7.L0, dr7.RW0, dr7.LEN0 };
 	case 1:
-		dr7.L1 = 1;
-		dr7.RW1 = attr;
-		dr7.LEN1 = len;
-		break;
+		return{ dr7.L1, dr7.RW1, dr7.LEN1 };
 	case 2:
-		dr7.L2 = 1;
-		dr7.RW2 = attr;
-		dr7.LEN2 = len;
-		break;
+		return{ dr7.L2, dr7.RW2, dr7.LEN2 };
 	case 3:
-		dr7.L3 = 1;
-		dr7.RW3 = attr;
-		dr7.LEN3 = len;
-		break;
+		return{ dr7.L3, dr7.RW3, dr7.LEN3 };
 	default:
 		__assume(0);
 	}
-	_dr7 = dr7.DR7;
 }
 
-static inline void ClearHWBreakPointStatus(DWORD& _dr6, size_t ith){
+
+static inline void SetHWBreakPointStatus(DWORD& _dr6, size_t ith, bool status){
 	Dr6_t dr6{ _dr6 };
 	switch (ith)
 	{
 	case 0:
-		dr6.B0 = 0;
+		dr6.B0 = status;
 		break;
 	case 1:
-		dr6.B1 = 0;
+		dr6.B1 = status;
 		break;
 	case 2:
-		dr6.B2 = 0;
+		dr6.B2 = status;
 		break;
 	case 3:
-		dr6.B3 = 0;
+		dr6.B3 = status;
 		break;
 	default:
 		__assume(0);
@@ -146,7 +153,7 @@ static inline void ClearHWBreakPointStatus(DWORD& _dr6, size_t ith){
 	_dr6 = dr6.DR6;
 }
 
-static inline bool CheckHWBreakPointStatus(const DWORD& _dr6, size_t ith){
+static inline bool GetHWBreakPointStatus(const DWORD& _dr6, size_t ith){
 	Dr6_t dr6{ _dr6 };
 	switch (ith)
 	{

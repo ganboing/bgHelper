@@ -1,7 +1,5 @@
 #include <Windows.h>
-#include <winternl.h>
 #include <Psapi.h>
-#include <string>
 #include "ApiEHWrapper.h"
 #include "ApiWrapper.h"
 #include "WinResMgr.h"
