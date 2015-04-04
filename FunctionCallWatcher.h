@@ -1,10 +1,6 @@
 #pragma once
 
-#include "ArchDbg.h"
-#include "ApiEHWrapper.h"
-#include "ApiWrapper.h"
-#include "WinResMgr.h"
-#include <algorithm>
+#include <Windows.h>
 
 void InstallHWExec(ULONG_PTR target, ULONG_PTR redir);
 void UninstallHWExec(ULONG_PTR target);

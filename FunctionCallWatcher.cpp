@@ -1,4 +1,7 @@
 #include "FunctionCallWatcher.h"
+#include "ArchDbg.h"
+#include <ntstatus.h>
+#include <algorithm>
 
 static ULONG_PTR FunctionWatches[4] = {};
 static ULONG_PTR FunctionRedirs[4] = {};

@@ -1,5 +1,4 @@
-#include <Windows.h>
-#include <Psapi.h>
+#include "NonExportApis/ntdll/ntdll.h"
 #include "ApiEHWrapper.h"
 #include "ApiWrapper.h"
 #include "WinResMgr.h"
@@ -50,8 +49,17 @@ PVOID WINAPI GetModuleEntryPointByName(LPCTSTR lpName){
 	return GetModuleEntryPoint(module);
 }
 
-void* GetStackStor()
-{
-	_NT_TIB* pTib = (_NT_TIB*)NtCurrentTeb();
-	return pTib->StackLimit;
+GEN_WINAPI_EH_STATUS(STATUS_SUCCESS, NtQueryInformationProcess);
+
+DWORD WINAPI GetParentProcessId(){
+	PROCESS_BASIC_INFORMATION_IMPL pbi;
+	ULONG ret;
+	if (NtQueryInformationProcess(GetCurrentProcess(), ProcessBasicInformation, &pbi, sizeof(pbi), &ret)
+		!= STATUS_SUCCESS){
+		DbgRaiseAssertionFailure();
+	}
+	if (ret != sizeof(pbi)){
+		DbgRaiseAssertionFailure();
+	}
+	return (DWORD)pbi.InheritedFromUniqueProcessId;
 }

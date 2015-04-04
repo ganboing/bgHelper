@@ -1,11 +1,22 @@
-#include <rpc.h>
-#include <ApiEHWrapper.h>
+#ifdef NDEBUG
+#undef NDEBUG
+#include "newstd.h"
+#define NDEBUG
+#else
+#include "newstd.h"
+#endif
+#include <Windows.h>
+#include <ntstatus.h>
 #include <cstdio>
-#include <memory>
+#include "ApiEHWrapper.h"
+#include "WinResMgr.h"
 #include "DbgPrintServer.h"
 
-GEN_WINAPI_EH_RESULT(NULL, CreateFileMapping);
-GEN_WINAPI_EH_RESULT(NULL, MapViewOfFile);
+GEN_WINAPI_EH_RESULT(NULL, CreateFileMappingW);
+GEN_WINAPI_EH_RESULT(NULL, MapViewOfFile); 
+GEN_WINAPI_EH_RESULT(NULL, OpenProcess);
+GEN_WINAPI_EH_RESULT(WAIT_FAILED, WaitForSingleObject);
+GEN_WINAPI_EH_RESULT(NULL, OpenFileMappingW);
 
 namespace DbgPnt{
 	
@@ -47,13 +58,14 @@ namespace DbgPnt{
 		for (;;){
 			auto nextpacket = area.PacketQueue.Pick();
 			if (!nextpacket){
-				if (area.IsShutdown.load()){
+				auto status = EH_WaitForSingleObject(proc.get(), 1);
+				if (status == WAIT_OBJECT_0){
 					break;
 				}
-				else{
-					Sleep(1);
-					continue;
+				if (status != WAIT_TIMEOUT){
+					DbgRaiseAssertionFailure();
 				}
+				continue;
 			}
 			Print(*nextpacket);
 			area.PacketQueue.Dequeue();
@@ -61,9 +73,20 @@ namespace DbgPnt{
 		printf("DbgServer for %d stopped\n", pid);
 	}
 
-	DbgPrintServer::DbgPrintServer(DWORD _pid, HANDLE _mapping) :
+	DbgPrintServer::DbgPrintServer(DWORD _pid) :
 		pid(_pid),
-		mapping(_mapping),
+		proc(EH_OpenProcess(SYNCHRONIZE, FALSE, pid)),
+		mapping(
+			EH_OpenFileMappingW(
+				FILE_MAP_ALL_ACCESS,
+				FALSE,
+				my_snwprintf(
+					(wchar_t*)alloca(PrinterMappingNameLen * sizeof(wchar_t)),
+					PrinterMappingNameLen, 
+					L"%s %p", PrinterMappingName, (ULONG_PTR)pid
+				)
+			)
+		),
 		view(EH_MapViewOfFile(mapping.get(), FILE_MAP_ALL_ACCESS, 0, 0, sizeof(DbgPntSharedArea))),
 		area(*(DbgPntSharedArea*)view.get())
 	{}

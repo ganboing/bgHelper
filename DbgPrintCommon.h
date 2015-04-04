@@ -2,23 +2,17 @@
 #include <Windows.h>
 #include <memory>
 #include <cstdint>
-#include <newstd.h>
 #include <TaskQueue.hpp>
 #include <ConcurrentStor.h>
 
-#ifdef _WIN64
-#define DBG_PNT_SERVER_NAME "DBG_PNT_x64"
-#else
-#define DBG_PNT_SERVER_NAME "DBG_PNT_x32"
-#endif
-
 namespace DbgPnt{
-	extern "C"{
-		unsigned __int3264 DbgPntCreate(IN RPC_BINDING_HANDLE);
-	}
 
 	static const size_t BUFF_LINES = 512;
 	static const size_t MAX_DBG_STR_LEN = 512;
+
+	static const wchar_t PrinterCmdLine[] = L"DbgPrinter.exe";
+	static const wchar_t PrinterMappingName[] = L"Dbg_Printer_Mapping_for_proc_";
+	static const size_t PrinterMappingNameLen = _countof(PrinterMappingName) + 1 + sizeof(HANDLE) * 2;
 
 	union PacketDataU{
 		unsigned char c;
@@ -50,7 +44,7 @@ namespace DbgPnt{
 		char str[MAX_DBG_STR_LEN];
 		wchar_t wstr[MAX_DBG_STR_LEN / sizeof(wchar_t)];
 	};
-	typedef ConcurrentStor<VStr, MAX_DBG_STR_LEN> VStrsTy;
+	typedef ConcurrentStor<VStr, BUFF_LINES> VStrsTy;
 	typedef TaskQueue<Packet, BUFF_LINES> PacketQueueTy;
 
 	struct DbgPntSharedArea{
@@ -60,7 +54,6 @@ namespace DbgPnt{
 		void operator delete  (void* ptr, uintptr_t mapping_handle);
 		VStrsTy Vstrs;
 		PacketQueueTy PacketQueue;
-		std::atomic<bool> IsShutdown;
 	};
 	typedef std::unique_ptr<DbgPntSharedArea> ManagedAreaView;
 }

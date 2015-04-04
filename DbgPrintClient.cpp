@@ -1,13 +1,20 @@
 #include <Windows.h>
 #include <memory>
+#ifdef NDEBUG
+#undef NDEBUG
+#include "newstd.h"
+#define NDEBUG
+#else
+#include "newstd.h"
+#endif
 #include "ApiWrapper.h"
 #include "ApiEHWrapper.h"
 #include "DbgPrintClient.h"
 #include "GlobalIniter.hpp"
-#include "newstd.h"
 
 GEN_WINAPI_EH_RESULT(NULL, MapViewOfFile);
-GEN_WINAPI_EH_RESULT(NULL, CreateFileMapping);
+GEN_WINAPI_EH_RESULT(NULL, CreateFileMappingW);
+GEN_WINAPI_EH_RESULT(FALSE, CreateProcessW);
 
 namespace DbgPnt{
 
@@ -25,14 +32,34 @@ namespace DbgPnt{
 
 	DbgPrintClient::DbgPrintClient() :
 		//mapping(InitSharedMapping()), 
-		mapping(EH_CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, sizeof(DbgPntSharedArea), NULL)),
+		mapping(
+			EH_CreateFileMappingW(
+				INVALID_HANDLE_VALUE,
+				NULL, 
+				PAGE_READWRITE, 
+				0, 
+				sizeof(DbgPntSharedArea), 
+				my_snwprintf(
+					(wchar_t*)alloca(PrinterMappingNameLen * sizeof(wchar_t)), 
+					PrinterMappingNameLen,
+					L"%s %p", PrinterMappingName, (ULONG_PTR)GetCurrentProcessId()
+				)
+			)
+		),
 		view(new ((uintptr_t)mapping.get())DbgPntSharedArea),
-		area(*view.get())
-	{}
+		area(*view.get()){
 
-	DbgPrintClient::~DbgPrintClient(){
-		area.IsShutdown.store(true);
+		wchar_t cmdline[_countof(PrinterCmdLine)];
+		std::copy(PrinterCmdLine, PrinterCmdLine + _countof(PrinterCmdLine), cmdline);
+		STARTUPINFOW startup{ sizeof(startup) };
+		PROCESS_INFORMATION info;
+		EH_CreateProcessW(NULL, cmdline, NULL, NULL, FALSE, 0, NULL, NULL, &startup, &info);
+		ManagedHANDLE(info.hProcess);
+		ManagedHANDLE(info.hThread);
 	}
+
+	DbgPrintClient::~DbgPrintClient()
+	{}
 
 	PacketQueueTy::EleSmartPtr DbgPrintClient::GetPacketSlot(const volatile char* fmt){
 		auto p = area.PacketQueue.Reserve();

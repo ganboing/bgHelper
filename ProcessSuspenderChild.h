@@ -12,7 +12,7 @@ namespace ProcSuspender{
 		ManagedView const view;
 		SuspenderSharedArea& area;
 	public:
-		ProcSuspenderChild(DWORD pid, HANDLE mapping);
+		ProcSuspenderChild(DWORD pid);
 		~ProcSuspenderChild();
 		inline static DWORD WINAPI ThreadProc(LPVOID p){
 			((ProcSuspenderChild*)p)->Run();

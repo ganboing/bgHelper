@@ -1,5 +1,5 @@
 #pragma once
-#include "DllNotifier.h"
+#include "NonExportApis/ntdll/ntdll.h"
 #include "ApiEHWrapper.h"
 
 GEN_WINAPI_EH_STATUS(STATUS_SUCCESS, LdrRegisterDllNotification);

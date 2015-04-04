@@ -1,27 +1,41 @@
-#include <Windows.h>
+#ifdef NDEBUG
+#undef NDEBUG
+#include "newstd.h"
+#define NDEBUG
+#else
+#include "newstd.h"
+#endif
+#include "NonExportApis/ntdll/ntdll.h"
 #include "ApiEHWrapper.h"
 #include "WinResMgr.h"
 #include "ProcessSuspenderChild.h"
 
-extern "C"{
-	NTSTATUS NTAPI NtResumeProcess(HANDLE ProcessHandle);
-	NTSTATUS NTAPI NtSuspendProcess(HANDLE ProcessHandle);
-}
-
 GEN_WINAPI_EH_RESULT(NULL, OpenProcess);
 GEN_WINAPI_EH_RESULT(NULL, OpenThread);
 GEN_WINAPI_EH_RESULT(NULL, MapViewOfFile);
-GEN_WINAPI_EH_STATUS(0, NtSuspendProcess);
-GEN_WINAPI_EH_STATUS(0, NtResumeProcess);
+GEN_WINAPI_EH_RESULT(NULL, OpenFileMappingW);
+GEN_WINAPI_EH_STATUS(STATUS_SUCCESS, NtSuspendProcess);
+GEN_WINAPI_EH_STATUS(STATUS_SUCCESS, NtResumeProcess);
 GEN_WINAPI_EH_RESULT((DWORD)-1, ResumeThread);
 GEN_WINAPI_EH_RESULT((DWORD)-1, SuspendThread);
+GEN_WINAPI_EH_RESULT(WAIT_FAILED, WaitForSingleObject);
 
 namespace ProcSuspender{
 
-	ProcSuspenderChild::ProcSuspenderChild(DWORD _pid, HANDLE _mapping):
+	ProcSuspenderChild::ProcSuspenderChild(DWORD _pid):
 		pid(_pid),
-		proc(EH_OpenProcess(PROCESS_SUSPEND_RESUME, FALSE, pid)),
-		mapping(_mapping),
+		proc(EH_OpenProcess(PROCESS_SUSPEND_RESUME | SYNCHRONIZE, FALSE, pid)),
+		mapping(
+			EH_OpenFileMappingW(
+				FILE_MAP_ALL_ACCESS, 
+				FALSE, 
+				my_snwprintf(
+					(wchar_t*)alloca(ProcSusMappingLen * sizeof(wchar_t)),
+					ProcSusMappingLen,
+					L"%s %p", ProcSusMapping, (ULONG_PTR)pid
+				)
+			)
+		),
 		view(EH_MapViewOfFile(mapping.get(), FILE_MAP_ALL_ACCESS, 0, 0, sizeof(SuspenderSharedArea))),
 		area(*(SuspenderSharedArea*)view.get())
 	{}
@@ -34,11 +48,8 @@ namespace ProcSuspender{
 		for (;;)
 		{
 			DWORD tid = area.tid.load();
-			if (tid == DWORD(0) - 1){
-				break;
-			}
 			if (tid){
-				ManagedHANDLE thread(OpenThread(THREAD_SUSPEND_RESUME, FALSE, tid));
+				ManagedHANDLE thread(EH_OpenThread(THREAD_SUSPEND_RESUME, FALSE, tid));
 				printf("suspending pid=%d, by tid=%d\n", pid, tid);
 				EH_NtSuspendProcess(proc.get());
 				area.suspend.store(true);
@@ -52,7 +63,13 @@ namespace ProcSuspender{
 				printf("resuming pid=%d, by tid=%d\n", pid, tid);
 			}
 			else{
-				Sleep(1);
+				auto status = EH_WaitForSingleObject(proc.get(), 1);
+				if (status == WAIT_OBJECT_0){
+					break;
+				}
+				if (status != WAIT_TIMEOUT){
+					DbgRaiseAssertionFailure();
+				}
 			}
 		}
 		printf("ProcSuspender for %d stopped\n", pid);

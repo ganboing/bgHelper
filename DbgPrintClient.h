@@ -1,7 +1,7 @@
 #pragma once
 #include <Windows.h>
-#include <Subauth.h>
 #include <cstdint>
+#include <winternl.h>
 #include "DbgPrintCommon.h"
 #include "WinResMgr.h"
 

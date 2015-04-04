@@ -6,11 +6,12 @@ namespace DbgPnt{
 	class DbgPrintServer{
 	public:
 		DWORD const pid;
+		ManagedHANDLE const proc;
 		ManagedHANDLE const mapping;
 		ManagedView const view;
 		DbgPntSharedArea& area;
 
-		DbgPrintServer(DWORD pid, HANDLE mapping);
+		DbgPrintServer(DWORD pid);
 		~DbgPrintServer();
 		inline static DWORD WINAPI ThreadProc(LPVOID p){
 			((DbgPrintServer*)p)->Run();

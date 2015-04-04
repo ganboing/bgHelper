@@ -1,5 +1,9 @@
 #pragma once
 
+#include <cassert>
+#include <cstdio>
+#include <cstdarg>
+
 template<size_t ...>
 struct seq_{};
 
@@ -40,11 +44,11 @@ size_t _my_strncpy(T(&Dest)[N], const volatile T* Src, size_t Len = SIZE_MAX){
 	return ++i;
 }
 
-char _my_get_hex(unsigned char i){
+inline char _my_get_hex(unsigned char i){
 	return i <= 9 ? i + '0' : i - 0xA + 'A';
 }
 
-void _my_print_char(char* buf, unsigned char data){
+inline void _my_print_char(char* buf, unsigned char data){
 	buf[0] = _my_get_hex(data / 0x10U);
 	buf[1] = _my_get_hex(data % 0x10U);
 }
@@ -90,11 +94,11 @@ inline size_t get_upper_cnt(size_t s){
 	return (s + sizeof(T) - 1) / sizeof(T);
 }
 
-union EncodeInt{
-	char c[16];
-	unsigned short s;
-	unsigned int i;
-	unsigned long l;
-	unsigned long long ll;
-	double d;
-};
+inline wchar_t* my_snwprintf(wchar_t* buffer, size_t count, wchar_t* format, ...){
+	va_list va;
+	va_start(va, format);
+	auto len = _vsnwprintf(buffer, count, format, va);
+	assert(len = count - 1);
+	va_end(va);
+	return buffer;
+}
