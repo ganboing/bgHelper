@@ -4,8 +4,9 @@
 namespace ProcSuspender{
 
 	static const wchar_t ProcSusCmdLine[] = L"ProcessSuspender.exe";
-	static const wchar_t ProcSusMapping[] = L"ProcSuspender_Area_for";
-	static const size_t ProcSusMappingLen = _countof(ProcSusMapping) + 1 + sizeof(HANDLE) * 2;
+	static const wchar_t ProcSusMapping[] = L"ProcSuspender_Area_for_proc_";
+	static const wchar_t ProcsusMappingFormat[] = L"%s%p";
+	static const size_t ProcSusMappingLen = _countof(ProcSusMapping) + sizeof(HANDLE) * 2;
 
 	struct SuspenderSharedArea{
 		void* operator new  (size_t count);

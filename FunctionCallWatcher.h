@@ -1,10 +1,13 @@
 #pragma once
 
 #include <Windows.h>
+#include <WinResMgr.h>
 
 void InstallHWExec(ULONG_PTR target, ULONG_PTR redir);
 void UninstallHWExec(ULONG_PTR target);
 LONG CALLBACK HWBreakPointHandler(PEXCEPTION_POINTERS);
+
+GEN_WINAPI_EH_RESULT(NULL, AddVectoredExceptionHandler);
 
 template <typename T>
 struct FuncWatcher;

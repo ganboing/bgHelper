@@ -12,7 +12,8 @@ namespace DbgPnt{
 
 	static const wchar_t PrinterCmdLine[] = L"DbgPrinter.exe";
 	static const wchar_t PrinterMappingName[] = L"Dbg_Printer_Mapping_for_proc_";
-	static const size_t PrinterMappingNameLen = _countof(PrinterMappingName) + 1 + sizeof(HANDLE) * 2;
+	static const wchar_t PrinterMappingFormat[] = L"%s%p";
+	static const size_t PrinterMappingNameLen = _countof(PrinterMappingName) + sizeof(HANDLE) * 2;
 
 	union PacketDataU{
 		unsigned char c;

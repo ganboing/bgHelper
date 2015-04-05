@@ -6,6 +6,7 @@
 #include "newstd.h"
 #endif
 #include "NonExportApis/ntdll/ntdll.h"
+#include "NewApi.h"
 #include "ApiEHWrapper.h"
 #include "WinResMgr.h"
 #include "ProcessSuspenderChild.h"
@@ -32,7 +33,7 @@ namespace ProcSuspender{
 				my_snwprintf(
 					(wchar_t*)alloca(ProcSusMappingLen * sizeof(wchar_t)),
 					ProcSusMappingLen,
-					L"%s %p", ProcSusMapping, (ULONG_PTR)pid
+					ProcsusMappingFormat, ProcSusMapping, (ULONG_PTR)pid
 				)
 			)
 		),
@@ -44,13 +45,13 @@ namespace ProcSuspender{
 	{}
 
 	void ProcSuspenderChild::Run(){
-		printf("ProcSuspender for %d started\n", pid);
+		DbgPintfA("ProcSuspender for %p started\n", (ULONG_PTR)pid);
 		for (;;)
 		{
 			DWORD tid = area.tid.load();
 			if (tid){
 				ManagedHANDLE thread(EH_OpenThread(THREAD_SUSPEND_RESUME, FALSE, tid));
-				printf("suspending pid=%d, by tid=%d\n", pid, tid);
+				DbgPintfA("suspending pid=%p, by tid=%p\n", (ULONG_PTR)pid, (ULONG_PTR)tid);
 				EH_NtSuspendProcess(proc.get());
 				area.suspend.store(true);
 				EH_ResumeThread(thread.get());
@@ -60,7 +61,7 @@ namespace ProcSuspender{
 				EH_SuspendThread(thread.get());
 				EH_NtResumeProcess(proc.get());
 				area.tid.store(0);
-				printf("resuming pid=%d, by tid=%d\n", pid, tid);
+				DbgPintfA("resuming pid=%p, by tid=%p\n", (ULONG_PTR)pid, (ULONG_PTR)tid);
 			}
 			else{
 				auto status = EH_WaitForSingleObject(proc.get(), 1);
@@ -72,6 +73,6 @@ namespace ProcSuspender{
 				}
 			}
 		}
-		printf("ProcSuspender for %d stopped\n", pid);
+		DbgPintfA("ProcSuspender for %p stopped\n", (ULONG_PTR)pid);
 	}
 }

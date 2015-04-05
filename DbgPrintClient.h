@@ -70,4 +70,4 @@ typedef DbgPnt::DbgPrintClient DbgPrintClient;
 typedef DbgPnt::FMT FMT;
 #pragma warning(pop)
 
-extern DbgPrintClient DBGr;
+extern DbgPrintClient& DBGr();

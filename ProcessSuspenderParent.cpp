@@ -37,7 +37,7 @@ namespace ProcSuspender{
 				my_snwprintf(
 					(wchar_t*)alloca(ProcSusMappingLen * sizeof(wchar_t)),
 					ProcSusMappingLen,
-					L"%s %p", ProcSusMapping, (ULONG_PTR)GetCurrentProcessId()
+					ProcsusMappingFormat, ProcSusMapping, (ULONG_PTR)GetCurrentProcessId()
 				)
 			)
 		),
@@ -47,7 +47,7 @@ namespace ProcSuspender{
 		std::copy(ProcSusCmdLine, ProcSusCmdLine + _countof(ProcSusCmdLine), cmdline);
 		STARTUPINFOW startup{ sizeof(startup) };
 		PROCESS_INFORMATION info;
-		EH_CreateProcessW(NULL, cmdline, NULL, NULL, FALSE, 0, NULL, NULL, &startup, &info);
+		EH_CreateProcessW(NULL, cmdline, NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &startup, &info);
 		ManagedHANDLE(info.hProcess);
 		ManagedHANDLE(info.hThread);
 	}
@@ -67,4 +67,11 @@ namespace ProcSuspender{
 		area->suspend.store(false);
 		while (area->tid.load() == tid);
 	}
+
 }
+
+ProcSuspenderParent& SusPender(){
+	static ProcSuspenderParent suspender;
+	return suspender;
+}
+

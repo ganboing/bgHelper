@@ -8,6 +8,8 @@
 #include <Windows.h>
 #include <ntstatus.h>
 #include <cstdio>
+#include <sstream>
+#include "NewApi.h"
 #include "ApiEHWrapper.h"
 #include "WinResMgr.h"
 #include "DbgPrintServer.h"
@@ -21,40 +23,38 @@ GEN_WINAPI_EH_RESULT(NULL, OpenFileMappingW);
 namespace DbgPnt{
 	
 	void DbgPrintServer::Print(const Packet& packet){
-		char buff[MAX_DBG_STR_LEN];
 		switch (packet.type){
 		case PacketType::CHAR:
-			_snprintf(buff, _countof(buff), packet.format, packet.data.c);
-			break;
+			DbgPintfA(packet.format, packet.data.c);
+			return;
 		case PacketType::INT:
-			_snprintf(buff, _countof(buff), packet.format, packet.data.i);
-			break;
+			DbgPintfA(packet.format, packet.data.i);
+			return;
 		case PacketType::SHORT:
-			_snprintf(buff, _countof(buff), packet.format, packet.data.s);
-			break;
+			DbgPintfA(packet.format, packet.data.s);
+			return;
 		case PacketType::LONG:
-			_snprintf(buff, _countof(buff), packet.format, packet.data.l);
-			break;
+			DbgPintfA(packet.format, packet.data.l);
+			return;
 		case PacketType::LONGLONG:
-			_snprintf(buff, _countof(buff), packet.format, packet.data.ll);
-			break;
+			DbgPintfA(packet.format, packet.data.ll);
+			return;
 		case PacketType::DOUBLE:
-			_snprintf(buff, _countof(buff), packet.format, packet.data.d);
-			break;
+			DbgPintfA(packet.format, packet.data.d);
+			return;
 		case PacketType::STRING:
-			_snprintf(buff, _countof(buff), packet.format, area.Vstrs[packet.data.istr].str);
+			DbgPintfA(packet.format, area.Vstrs[packet.data.istr].str);
 			area.Vstrs.Free(&area.Vstrs[packet.data.istr]);
-			break;
+			return;
 		case PacketType::WSTRING:
 			OutputDebugStringW(area.Vstrs[packet.data.istr].wstr);
 			area.Vstrs.Free(&area.Vstrs[packet.data.istr]);
 			return;
 		}
-		OutputDebugStringA(buff);
 	}
 
 	void DbgPrintServer::Run(){
-		printf("DbgServer for %d started\n", pid);
+		DbgPintfA("DbgServer for %p started\n", (ULONG_PTR)pid);
 		for (;;){
 			auto nextpacket = area.PacketQueue.Pick();
 			if (!nextpacket){
@@ -70,7 +70,7 @@ namespace DbgPnt{
 			Print(*nextpacket);
 			area.PacketQueue.Dequeue();
 		}
-		printf("DbgServer for %d stopped\n", pid);
+		DbgPintfA("DbgServer for %p stopped\n", (ULONG_PTR)pid);
 	}
 
 	DbgPrintServer::DbgPrintServer(DWORD _pid) :
@@ -83,7 +83,7 @@ namespace DbgPnt{
 				my_snwprintf(
 					(wchar_t*)alloca(PrinterMappingNameLen * sizeof(wchar_t)),
 					PrinterMappingNameLen, 
-					L"%s %p", PrinterMappingName, (ULONG_PTR)pid
+					PrinterMappingFormat, PrinterMappingName, (ULONG_PTR)pid
 				)
 			)
 		),

@@ -1,4 +1,7 @@
 #pragma once
+#ifdef NDEBUG
+#error "Please undefine NDEBUG"
+#endif
 
 #include <cassert>
 #include <cstdio>
@@ -94,11 +97,22 @@ inline size_t get_upper_cnt(size_t s){
 	return (s + sizeof(T) - 1) / sizeof(T);
 }
 
-inline wchar_t* my_snwprintf(wchar_t* buffer, size_t count, wchar_t* format, ...){
+inline wchar_t* my_snwprintf(wchar_t* buffer, size_t count, const wchar_t* format, ...){
 	va_list va;
 	va_start(va, format);
 	auto len = _vsnwprintf(buffer, count, format, va);
 	assert(len = count - 1);
 	va_end(va);
 	return buffer;
+}
+
+template <class InputIterator1, class InputIterator2>
+int my_lexcmp(InputIterator1 first1, InputIterator1 last1,
+	InputIterator2 first2, InputIterator2 last2){
+	if (last1 - first1 == last2 - first2){
+		if (std::equal(first1, last1, first2)){
+			return true;
+		}
+	}
+	return !std::lexicographical_compare(first1, last1, first2, last2) * 2 - 1;
 }

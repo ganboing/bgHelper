@@ -42,7 +42,7 @@ namespace DbgPnt{
 				my_snwprintf(
 					(wchar_t*)alloca(PrinterMappingNameLen * sizeof(wchar_t)), 
 					PrinterMappingNameLen,
-					L"%s %p", PrinterMappingName, (ULONG_PTR)GetCurrentProcessId()
+					PrinterMappingFormat, PrinterMappingName, (ULONG_PTR)GetCurrentProcessId()
 				)
 			)
 		),
@@ -53,7 +53,7 @@ namespace DbgPnt{
 		std::copy(PrinterCmdLine, PrinterCmdLine + _countof(PrinterCmdLine), cmdline);
 		STARTUPINFOW startup{ sizeof(startup) };
 		PROCESS_INFORMATION info;
-		EH_CreateProcessW(NULL, cmdline, NULL, NULL, FALSE, 0, NULL, NULL, &startup, &info);
+		EH_CreateProcessW(NULL, cmdline, NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &startup, &info);
 		ManagedHANDLE(info.hProcess);
 		ManagedHANDLE(info.hThread);
 	}
@@ -88,7 +88,7 @@ namespace DbgPnt{
 		auto p = GetPacketSlot("");
 		p->type = PacketType::WSTRING;
 		auto vstr = area.Vstrs.Alloc();
-		_my_strncpy(vstr->wstr, wstr.Buffer, wstr.Length);
+		_my_strncpy(vstr->wstr, wstr.Buffer, wstr.Length / sizeof(WCHAR));
 		p->data.istr = vstr - &area.Vstrs[0];
 	}
 
@@ -127,6 +127,11 @@ namespace DbgPnt{
 		p->type = PacketType::DOUBLE;
 		p->data.d = d;
 	}
+}
+
+DbgPrintClient& DBGr(){
+	static DbgPrintClient dbgr;
+	return dbgr;
 }
 
 //GLOBAL_INITER_IMPL(DbgPrintClient, DBGr)

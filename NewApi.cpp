@@ -63,3 +63,49 @@ DWORD WINAPI GetParentProcessId(){
 	}
 	return (DWORD)pbi.InheritedFromUniqueProcessId;
 }
+
+LPTSTR WINAPI NtStatusToString(NTSTATUS Err){
+	LPTSTR str;
+	auto ret =
+		FormatMessage(
+		FORMAT_MESSAGE_ALLOCATE_BUFFER |
+		FORMAT_MESSAGE_FROM_SYSTEM,
+		NULL,
+		Err,
+		LANG_SYSTEM_DEFAULT,
+		(LPTSTR)&str,
+		0,
+		NULL);
+	if (ret){
+		return str;
+	}
+	else{
+		return NULL;
+	}
+}
+
+VOID WINAPI DbgPintfA(LPCSTR format, ...){
+	va_list va;
+	va_start(va, format);
+	auto len = _vsnprintf(NULL, 0, format, va);
+	auto buffer = (char*)alloca((len + 1)*sizeof(char));
+	auto ret = _vsnprintf(buffer, len + 1, format, va);
+	if (ret != len){
+		DbgRaiseAssertionFailure();
+	}
+	OutputDebugStringA(buffer);
+	va_end(va);
+}
+
+VOID WINAPI DbgPintfW(LPCWSTR format, ...){
+	va_list va;
+	va_start(va, format);
+	auto len = _vsnwprintf(NULL, 0, format, va);
+	auto buffer = (wchar_t*)alloca((len + 1) * sizeof(wchar_t));
+	auto ret = _vsnwprintf(buffer, len + 1, format, va);
+	if (ret != len){
+		DbgRaiseAssertionFailure();
+	}
+	OutputDebugStringW(buffer);
+	va_end(va);
+}

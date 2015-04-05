@@ -16,3 +16,4 @@ namespace ProcSuspender{
 }
 
 typedef ProcSuspender::ProcSuspenderParent ProcSuspenderParent;
+ProcSuspenderParent& SusPender();
