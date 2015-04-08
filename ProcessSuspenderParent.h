@@ -1,3 +1,4 @@
+#pragma once
 #include <ProcessSuspenderCommon.h>
 #include <WinResMgr.h>
 

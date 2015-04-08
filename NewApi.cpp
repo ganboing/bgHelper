@@ -1,11 +1,5 @@
 #include "NonExportApis/ntdll/ntdll.h"
-#include "ApiEHWrapper.h"
-#include "ApiWrapper.h"
 #include "WinResMgr.h"
-
-GEN_WINAPI_EH_RESULT(NULL, CreateFileMapping);
-GEN_WINAPI_EH_RESULT(NULL, MapViewOfFile);
-GEN_WINAPI_EH_RESULT(0, GetMappedFileName);
 
 DWORD WINAPI GetFileNameFromHandle(HANDLE hFile, LPTSTR lpName, DWORD nSize)
 {
@@ -48,8 +42,6 @@ PVOID WINAPI GetModuleEntryPointByName(LPCTSTR lpName){
 
 	return GetModuleEntryPoint(module);
 }
-
-GEN_WINAPI_EH_STATUS(STATUS_SUCCESS, NtQueryInformationProcess);
 
 DWORD WINAPI GetParentProcessId(){
 	PROCESS_BASIC_INFORMATION_IMPL pbi;

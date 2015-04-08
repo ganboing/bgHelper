@@ -9,34 +9,27 @@ LONG CALLBACK HWBreakPointHandler(PEXCEPTION_POINTERS);
 
 GEN_WINAPI_EH_RESULT(NULL, AddVectoredExceptionHandler);
 
-template <typename T>
-struct FuncWatcher;
+template < typename Fty, Fty*& Impl, Fty& Redir>
+struct FuncRedir{
 
-template <typename Ret, typename ...Args>
-struct FuncWatcher<Ret __stdcall(Args...)>{
+	static void Install(){
+		InstallHWExec((ULONG_PTR)Impl, (ULONG_PTR)Redir);
+	}
 
-	typedef Ret __stdcall Fty(Args...);
+	static void Uninstall(){
+		UninstallHWExec((ULONG_PTR)Impl);
+	}
 
-	template< Fty *& Original>
-	struct Redir{
-		static Ret __stdcall Impl(Args... args){
-			return Original(args...);
+	static void Unset(){
+		if (!Impl){
+			DbgRaiseAssertionFailure();
 		}
-		static Ret __stdcall Hooker(Args...);
-		static void Install(void* Target){
-			Original = (Fty*)Target;
-			InstallHWExec((ULONG_PTR)Original, (ULONG_PTR)Hooker);
+		Impl = NULL;
+	}
+	static void Set(PVOID impl){
+		if (Impl){
+			DbgRaiseAssertionFailure();
 		}
-
-		static void Uninstall(){
-			UninstallHWExec((ULONG_PTR)Original);
-		}
-	};
+		Impl = (Fty*)impl;
+	}
 };
-
-typedef BOOL WINAPI DLLMAIN_t(
-	_In_  HINSTANCE hinstDLL,
-	_In_  DWORD fdwReason,
-	_In_  LPVOID lpvReserved
-	);
-typedef DWORD WINAPI EXEMAIN_t(void);

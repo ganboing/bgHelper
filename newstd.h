@@ -111,7 +111,7 @@ int my_lexcmp(InputIterator1 first1, InputIterator1 last1,
 	InputIterator2 first2, InputIterator2 last2){
 	if (last1 - first1 == last2 - first2){
 		if (std::equal(first1, last1, first2)){
-			return true;
+			return 0;
 		}
 	}
 	return !std::lexicographical_compare(first1, last1, first2, last2) * 2 - 1;

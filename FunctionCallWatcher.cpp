@@ -1,12 +1,23 @@
 #include "FunctionCallWatcher.h"
 #include "ArchDbg.h"
+#include "WinResMgr.h"
 #include <ntstatus.h>
 #include <algorithm>
 
-static ULONG_PTR FunctionWatches[4] = {};
-static ULONG_PTR FunctionRedirs[4] = {};
+__declspec(thread) static ULONG_PTR FunctionWatches[4] = {};
+__declspec(thread) static ULONG_PTR FunctionRedirs[4] = {};
+
 
 void InstallHWExec(ULONG_PTR target, ULONG_PTR redir){
+	if (!target){
+		DbgRaiseAssertionFailure();
+	}
+	auto FWe = FunctionWatches + _countof(FunctionWatches), FWi = std::find(FunctionWatches, FWe, target);
+	if (FWi != FWe){
+		//check if already hooked
+		DbgRaiseAssertionFailure();
+	}
+
 	CONTEXT context{ CONTEXT_DEBUG_REGISTERS };
 	if (!GetThreadContext(GetCurrentThread(), &context)){
 		DbgRaiseAssertionFailure();
@@ -14,10 +25,12 @@ void InstallHWExec(ULONG_PTR target, ULONG_PTR redir){
 	decltype(context.Dr0)* DRs[] = { &context.Dr0, &context.Dr1, &context.Dr2, &context.Dr3 };
 	auto DRe = DRs + _countof(DRs), DRi = std::find_if(DRs, DRe, [](decltype(context.Dr0) *v){return *v == NULL; });
 	if (DRi == DRe){
+		//running out of hw breakpoints
 		DbgRaiseAssertionFailure();
 	}
 	auto ith = DRi - DRs;
 	if (FunctionWatches[ith]){
+		//sanity check
 		DbgRaiseAssertionFailure();
 	}
 
@@ -31,9 +44,12 @@ void InstallHWExec(ULONG_PTR target, ULONG_PTR redir){
 	}
 }
 void UninstallHWExec(ULONG_PTR target){
-
+	if (!target){
+		DbgRaiseAssertionFailure();
+	}
 	auto FWe = FunctionWatches + _countof(FunctionWatches), FWi = std::find(FunctionWatches, FWe, target);
 	if (FWi == FWe){
+		//check if not hooked
 		DbgRaiseAssertionFailure();
 	}
 	auto ith = FWi - FunctionWatches;
@@ -45,6 +61,7 @@ void UninstallHWExec(ULONG_PTR target){
 	}
 	decltype(context.Dr0)* DRs[] = { &context.Dr0, &context.Dr1, &context.Dr2, &context.Dr3 };
 	if (*DRs[ith] != target){
+		//sanity check
 		DbgRaiseAssertionFailure();
 	}
 	*DRs[ith] = NULL;
@@ -60,15 +77,15 @@ LONG CALLBACK HWBreakPointHandler(_In_  PEXCEPTION_POINTERS ExceptionInfo){
 		return EXCEPTION_CONTINUE_SEARCH;
 	}
 	auto addr = (ULONG_PTR)ExceptionInfo->ExceptionRecord->ExceptionAddress;
-	auto& context = *ExceptionInfo->ContextRecord;
-	if (addr != context.Eip){
-		//check if eip == breakpoint address
-		DbgRaiseAssertionFailure();
-	}
 	auto FWe = FunctionWatches + _countof(FunctionWatches), FWi = std::find(FunctionWatches, FWe, addr);
 	if (FWi == FWe){
 		//check if breakpoint is the watched function
 		return EXCEPTION_CONTINUE_SEARCH;
+	}
+	auto& context = *ExceptionInfo->ContextRecord;
+	if (addr != context.Eip){
+		//check if eip == breakpoint address
+		DbgRaiseAssertionFailure();
 	}
 	auto ith = FWi - FunctionWatches;
 
@@ -80,6 +97,10 @@ LONG CALLBACK HWBreakPointHandler(_In_  PEXCEPTION_POINTERS ExceptionInfo){
 	auto ctrl = GetHWBreakPointCtrl(context.Dr7, ith);
 	if (!ctrl.ENABLE || ctrl.RW != HWBP_EXEC || ctrl.LEN != HWBP_LEN1){
 		//check if dr7 is valid
+		DbgRaiseAssertionFailure();
+	}
+	if (!GetHWBreakPointStatus(context.Dr6, ith)){
+		//check if dr6 is valid
 		DbgRaiseAssertionFailure();
 	}
 	SetHWBreakPointStatus(context.Dr6, ith, false);

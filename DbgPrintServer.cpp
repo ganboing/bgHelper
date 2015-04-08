@@ -55,17 +55,23 @@ namespace DbgPnt{
 
 	void DbgPrintServer::Run(){
 		DbgPintfA("DbgServer for %p started\n", (ULONG_PTR)pid);
+		bool exiting(false);
 		for (;;){
 			auto nextpacket = area.PacketQueue.Pick();
 			if (!nextpacket){
-				auto status = EH_WaitForSingleObject(proc.get(), 1);
-				if (status == WAIT_OBJECT_0){
+				if (exiting){
 					break;
 				}
-				if (status != WAIT_TIMEOUT){
-					DbgRaiseAssertionFailure();
+				else{
+					auto status = EH_WaitForSingleObject(proc.get(), 1);
+					if (status == WAIT_OBJECT_0){
+						exiting = true;
+					}
+					else if (status != WAIT_TIMEOUT){
+						DbgRaiseAssertionFailure();
+					}
+					continue;
 				}
-				continue;
 			}
 			Print(*nextpacket);
 			area.PacketQueue.Dequeue();

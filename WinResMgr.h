@@ -7,6 +7,7 @@ typedef WINAPI_CALLABLE(CloseHandle) _HANDLE_Deleter;
 typedef WINAPI_CALLABLE(UnmapViewOfFile) _SECTION_Unmapper;
 typedef WINAPI_CALLABLE(RemoveVectoredExceptionHandler) _VEHUninstaller;
 typedef WINAPI_CALLABLE(LocalFree) _HLocalDeleter;
+typedef WINAPI_CALLABLE(TlsAlloc) _TlsDeleter;
 
 //typedef ::std::unique_ptr<FILE, _HANDLE_Deleter> ManagedFile;
 typedef ::std::unique_ptr<std::remove_pointer<HANDLE>::type, _HANDLE_Deleter> ManagedHANDLE;

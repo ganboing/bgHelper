@@ -2,6 +2,33 @@
 #include <cstdint>
 #include <Windows.h>
 
+typedef union {
+	DWORD EFLAGS;
+	struct{
+		DWORD CF : 1;
+	DWORD:1;
+		DWORD PF : 1;
+	DWORD:1;
+		DWORD AF : 1;
+	DWORD:1;
+		DWORD ZF : 1;
+		DWORD SF : 1;
+		DWORD TF : 1;
+		DWORD IF : 1;
+		DWORD DF : 1;
+		DWORD OF : 1;
+		DWORD IOPL : 2;
+		DWORD NT : 1;
+	DWORD: 1;
+		DWORD RF : 1;
+		DWORD VM : 1;
+		DWORD AC : 1;
+		DWORD VIF : 1;
+		DWORD VIP : 1;
+		DWORD ID : 1;
+	};
+}Eflags_t;
+
 enum HWBreakPointRWLEN : ULONG_PTR{
 	HWBP_EXEC = 0,
 	HWBP_WRITE = 1,
