@@ -14,9 +14,8 @@ class DbgVarWatcher{
 	static DWORD threadId;
 	static ULONG_PTR dataAddr;
 	static bool accessType;
-	static const ManagedVEH ehHandle;
 public:
-	static char Impl[sizeof(Type)];
+	static char Redir[sizeof(Type)];
 	static LONG CALLBACK ExceptionHandler(PEXCEPTION_POINTERS ExceptionInfo){
 
 		if (threadId){
@@ -41,7 +40,6 @@ public:
 			SusPender().ResumeSelf();
 
 			threadId = 0;
-			return EXCEPTION_CONTINUE_EXECUTION;
 		}
 		else{
 			if (ExceptionInfo->ExceptionRecord->ExceptionCode != EXCEPTION_ACCESS_VIOLATION){
@@ -69,12 +67,28 @@ public:
 			}
 
 			Callback(dataAddr - (uintptr_t)Redir, accessType, false);
-			memcpy(Redir, Imple, sizeof(Type));
+			memcpy(Redir, Impl, sizeof(Type));
 
 			Eflags_t eflags{ ExceptionInfo->ContextRecord->EFlags };
 			eflags.TF = 1;
 			ExceptionInfo->ContextRecord->EFlags = eflags.EFLAGS;
-
 		}
+		return EXCEPTION_CONTINUE_EXECUTION;
 	}
 };
+
+#pragma section("varwatch")
+#pragma comment(linker, "/SECTION:varwatch,!RWE")
+
+template<typename Type, void* Impl, DbgVarWatchCallback Callback>
+__declspec(allocate("varwatch")) __declspec(align(4096)) 
+char DbgVarWatcher<Type, Impl, Callback>::Redir[sizeof(Type)];
+
+template<typename Type, void* Impl, DbgVarWatchCallback Callback>
+DWORD DbgVarWatcher<Type, Impl, Callback>::threadId = 0;
+
+template<typename Type, void* Impl, DbgVarWatchCallback Callback>
+ULONG_PTR DbgVarWatcher<Type, Impl, Callback>::dataAddr = 0;
+
+template<typename Type, void* Impl, DbgVarWatchCallback Callback>
+bool DbgVarWatcher<Type, Impl, Callback>::accessType = false;

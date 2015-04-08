@@ -4,9 +4,15 @@
 #include <ntstatus.h>
 #include <algorithm>
 
-__declspec(thread) static ULONG_PTR FunctionWatches[4] = {};
-__declspec(thread) static ULONG_PTR FunctionRedirs[4] = {};
+#ifndef HWBP_SINGLE_THREAD
+__declspec(thread)
+#endif
+static ULONG_PTR FunctionWatches[4] = {};
 
+#ifndef HWBP_SINGLE_THREAD
+__declspec(thread)
+#endif
+static ULONG_PTR FunctionRedirs[4] = {};
 
 void InstallHWExec(ULONG_PTR target, ULONG_PTR redir){
 	if (!target){

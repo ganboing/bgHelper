@@ -33,3 +33,6 @@ struct FuncRedir{
 		Impl = (Fty*)impl;
 	}
 };
+
+typedef DWORD WINAPI EXEMAIN(void);
+typedef BOOL WINAPI DLLMAIN(HINSTANCE, DWORD, LPVOID);
