@@ -1,7 +1,4 @@
 #pragma once
-#ifdef NDEBUG
-#error "Please undefine NDEBUG"
-#endif
 
 #include <cassert>
 #include <cstdio>

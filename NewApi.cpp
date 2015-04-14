@@ -76,28 +76,36 @@ LPTSTR WINAPI NtStatusToString(NTSTATUS Err){
 	}
 }
 
-VOID WINAPI DbgPintfA(LPCSTR format, ...){
+VOID WINAPI DbgPrintfA(LPCSTR format, ...){
 	va_list va;
 	va_start(va, format);
 	auto len = _vsnprintf(NULL, 0, format, va);
+	va_end(va);
+
 	auto buffer = (char*)alloca((len + 1)*sizeof(char));
+
+	va_start(va, format);
 	auto ret = _vsnprintf(buffer, len + 1, format, va);
+	va_end(va);
 	if (ret != len){
 		DbgRaiseAssertionFailure();
 	}
 	OutputDebugStringA(buffer);
-	va_end(va);
 }
 
-VOID WINAPI DbgPintfW(LPCWSTR format, ...){
+VOID WINAPI DbgPrintfW(LPCWSTR format, ...){
 	va_list va;
 	va_start(va, format);
 	auto len = _vsnwprintf(NULL, 0, format, va);
+	va_end(va);
+
 	auto buffer = (wchar_t*)alloca((len + 1) * sizeof(wchar_t));
+
+	va_start(va, format);
 	auto ret = _vsnwprintf(buffer, len + 1, format, va);
+	va_end(va);
 	if (ret != len){
 		DbgRaiseAssertionFailure();
 	}
 	OutputDebugStringW(buffer);
-	va_end(va);
 }

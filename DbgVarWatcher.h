@@ -15,7 +15,7 @@ class DbgVarWatcher{
 	static ULONG_PTR dataAddr;
 	static bool accessType;
 public:
-	static char Redir[sizeof(Type)];
+	static Type Redir;
 	static LONG CALLBACK ExceptionHandler(PEXCEPTION_POINTERS ExceptionInfo){
 
 		if (threadId){
@@ -30,11 +30,11 @@ public:
 			eflags.TF = 0;
 			ExceptionInfo->ContextRecord->EFlags = eflags.EFLAGS;
 
-			Callback(dataAddr - (uintptr_t)Redir, accessType, true);
-			memcpy(Impl, Redir, sizeof(Type));
+			Callback(dataAddr - (uintptr_t)&Redir, accessType, true);
+			memcpy(Impl, &Redir, sizeof(Type));
 
 			DWORD oldProt;
-			if (!VirtualProtect(Redir, sizeof(Type), PAGE_NOACCESS, &oldProt)){
+			if (!VirtualProtect(&Redir, sizeof(Type), PAGE_NOACCESS, &oldProt)){
 				DbgRaiseAssertionFailure();
 			}
 			SusPender().ResumeSelf();
@@ -50,7 +50,7 @@ public:
 			}
 			auto type = ExceptionInfo->ExceptionRecord->ExceptionInformation[0];
 			auto addr = ExceptionInfo->ExceptionRecord->ExceptionInformation[1];
-			if (addr < (uintptr_t)Redir || addr >= (uintptr_t)Redir + sizeof(Type)){
+			if (addr < (uintptr_t)&Redir || addr >= (uintptr_t)&Redir + sizeof(Type)){
 				return EXCEPTION_CONTINUE_SEARCH;
 			}
 			if (type != !!type){
@@ -62,12 +62,12 @@ public:
 
 			SusPender().SuspendSelf();
 			DWORD oldProt;
-			if (!VirtualProtect(Redir, sizeof(Type), PAGE_READWRITE, &oldProt)){
+			if (!VirtualProtect(&Redir, sizeof(Type), PAGE_READWRITE, &oldProt)){
 				DbgRaiseAssertionFailure();
 			}
 
-			Callback(dataAddr - (uintptr_t)Redir, accessType, false);
-			memcpy(Redir, Impl, sizeof(Type));
+			Callback(dataAddr - (uintptr_t)&Redir, accessType, false);
+			memcpy(&Redir, Impl, sizeof(Type));
 
 			Eflags_t eflags{ ExceptionInfo->ContextRecord->EFlags };
 			eflags.TF = 1;
@@ -81,8 +81,8 @@ public:
 #pragma comment(linker, "/SECTION:varwatch,!RWE")
 
 template<typename Type, void* Impl, DbgVarWatchCallback Callback>
-__declspec(allocate("varwatch")) __declspec(align(4096)) 
-char DbgVarWatcher<Type, Impl, Callback>::Redir[sizeof(Type)];
+__declspec(allocate("varwatch")) __declspec(align(4096))
+Type DbgVarWatcher<Type, Impl, Callback>::Redir;
 
 template<typename Type, void* Impl, DbgVarWatchCallback Callback>
 DWORD DbgVarWatcher<Type, Impl, Callback>::threadId = 0;
