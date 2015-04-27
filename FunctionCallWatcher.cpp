@@ -24,7 +24,8 @@ void InstallHWExec(ULONG_PTR target, ULONG_PTR redir){
 		DbgRaiseAssertionFailure();
 	}
 
-	CONTEXT context{ CONTEXT_DEBUG_REGISTERS };
+	CONTEXT context{};
+	context.ContextFlags = CONTEXT_DEBUG_REGISTERS;
 	if (!GetThreadContext(GetCurrentThread(), &context)){
 		DbgRaiseAssertionFailure();
 	}
@@ -61,7 +62,8 @@ void UninstallHWExec(ULONG_PTR target){
 	auto ith = FWi - FunctionWatches;
 
 	FunctionWatches[ith] = NULL;
-	CONTEXT context{ CONTEXT_DEBUG_REGISTERS };
+	CONTEXT context{};
+	context.ContextFlags = CONTEXT_DEBUG_REGISTERS;
 	if (!GetThreadContext(GetCurrentThread(), &context)){
 		DbgRaiseAssertionFailure();
 	}
